@@ -1,0 +1,6 @@
+include_directories(${ROOT_DIR}/src)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} TEST_SOURCE)
+MESSAGE("TEST_SOURCE is ${TEST_SOURCE}")
+add_executable(test_runner ${TEST_SOURCE})
+target_link_libraries(test_runner PUBLIC GTest::gtest_main stdc++ ${LIB_NAME})
+add_test(tests test_runner)
