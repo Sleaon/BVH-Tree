@@ -19,14 +19,36 @@ FastVector<T, Dim> ComputeCentrePoint(VectorList<T,Dim,Edges> list) {
   return r / Edges;
 }
 
-// template <typename T, size_t Dim, size_t Edges>
-// Status Intersect(const FastVector<T,Dim>& point, const VectorList<T,Dim,Edges>& peek_list, uint32_t* intersection_count) {
-//   return Status::MakeNotSupport();
-// }
+template <typename T, size_t Dim>
+T Sum(FastVector<T,Dim> v) {
+  T r=0;
+  StaticFor<0, Dim>([&](size_t i) { r +=v[i]; });
+  return r;
+}
 
-// template <typename T,  size_t Edges>
-// Status Intersect<T,2,Edges>(const FastVector<T,2>& point, const VectorList<T,2,Edges>& peek_list, uint32_t* intersection_count) {
-//   }
+template <typename T, size_t Dim>
+T ComputeDistance(const FastVector<T,Dim>& v1, const FastVector<T,Dim>& v2){
+  auto diff = v1-v2;
+  diff = diff*diff;
+  return Sum(diff);
+}
+
+template <typename T, size_t Dim>
+T ComputeDistance(const FastVector<T,Dim>& point, const FastVector<T,Dim>& begin, const FastVector<T,Dim>& end){
+  auto line_vec = end - begin; //AB
+	auto point_vec = point - begin; //AP
+	auto c = Sum(line_vec * point_vec); //|AB*AP|
+	if (c <= 0) return ComputeDistance(point,begin); //|AP|
+ 
+	auto d = ComputeDistance(begin,end); //|AB|^2
+	if (c >= d) return ComputeDistance(point,end); //|BP|
+ 
+	auto r = c / d; 
+	auto p_shadow = begin + line_vec * r;
+ 
+	return ComputeDistance(point,p_shadow); //|CP|
+
+}
 
 }  // namespace bvh
 #endif

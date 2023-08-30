@@ -3,9 +3,9 @@
 #define BVH_TREE_RAY_CASTING_H
 
 #include <bitset>
-#include <iostream>
 
 #include "calculate.h"
+#include "diagram.h"
 #include "fast_vector.h"
 #include "utils.h"
 namespace bvh {
@@ -14,7 +14,7 @@ template <typename T, size_t Dim, size_t Edges>
 class RayCasting {
  public:
   Status Do(const FastVector<T, Dim>& point,
-            const VectorList<T, Dim, Edges>& peek_list,
+            const Diagram<T,Edges>& diagram,
             uint32_t* intersection_count) {
     return Status::MakeNotSupport();
   }
@@ -24,7 +24,7 @@ template <typename T, size_t Edges>
 class RayCasting<T, 2, Edges> {
  public:
   Status Do(const FastVector<T, 2>& point,
-            const VectorList<T, 2, Edges>& peek_list,
+            const Diagram<T,Edges>& diagram,
             uint32_t* intersection_count) {
     std::bitset<Edges> result;
     try {
@@ -32,14 +32,14 @@ class RayCasting<T, 2, Edges> {
         size_t begin_index;
         size_t end_index;
         if (i == 0) {
-          begin_index = Edges - 1;
+         begin_index = Edges - 1;
           end_index = i;
         } else {
           begin_index = i - 1;
           end_index = i;
         }
-        auto& begin = peek_list[begin_index];
-        auto& end = peek_list[end_index];
+        auto& begin = diagram.GetPeak(begin_index);
+        auto& end = diagram.GetPeak(end_index);
 
         if (begin[0] <= point[0] && end[0] <= point[0]) {
           result.set(i, 0);

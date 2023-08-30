@@ -4,6 +4,7 @@
 #include "fast_vector.h"
 #include "gtest/gtest.h"
 #include "ray_casting.h"
+#include "closest_point.h"
 using namespace bvh;
 TEST(Diagnostics, base) {
   Diagram<int, 5> a;
@@ -47,4 +48,29 @@ TEST(Diagnostics, contain) {
   FastVector<float, 2> p4{40.5, 50.3};
   r = e.Contain<RayCasting<float, 2, 4>>(p4, ray);
   EXPECT_EQ(false, r);
+}
+
+TEST(Diagnostics, distance) {
+  FastVector<float, 2> a{1.0, 1.0};
+  FastVector<float, 2> b{1.0, 20.0};
+  FastVector<float, 2> c{50.0, 20.0};
+  FastVector<float, 2> d{50.0, 1.0};
+  Diagram<float, 4> e(0, a, b, c, d);
+    ClosestPoint<float,2,4> alg;
+
+  FastVector<float, 2> p1{1.0, 1.0};
+  auto dist = e.Distance(p1, alg);
+  EXPECT_DOUBLE_EQ(0, dist);
+
+  FastVector<float, 2> p2{1.0, 10.0};
+ dist = e.Distance(p1, alg);
+  EXPECT_DOUBLE_EQ(0, dist);
+
+  FastVector<float, 2> p3{0.0, 1.0};
+  dist = e.Distance(p3, alg);
+  EXPECT_DOUBLE_EQ(1.0, dist);
+
+  FastVector<float, 2> p4{55.0, 10.0};
+  dist = e.Distance(p4, alg);
+  EXPECT_DOUBLE_EQ(25.0, dist);
 }

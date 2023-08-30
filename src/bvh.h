@@ -3,18 +3,18 @@
 #define BVH_TREE_BVH_TREE_H
 #include <algorithm>
 #include <atomic>
-#include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "diagram.h"
-#include "fast_vector.h"
-#include "ray_casting.h"
 #include "status.h"
 #include "utils.h"
+#include "fast_vector.h"
+#include "diagram.h"
+#include "ray_casting.h"
+#include "closest_point.h"
+
 namespace bvh {
 
 template <typename T, size_t Dim, size_t Edges>
@@ -44,11 +44,12 @@ class BVHTree<T, 2, Edges> {
     auto it = data_.begin();
     RayCasting<T, 2, Edges> ray;
     while (true) {
-      it = std::find_if(it, data_.end(), [&](const Diagram<T, Edges>& d) {
+      it = std::find_if(it, data_.end(), [&](auto& d_pair) {
+        auto&[_,d] = d_pair;
         return d.Contain(tmp, ray);
       });
       if (it != data_.end()) {
-        auto name_it = ivf_name_.find(it->GetId());
+        auto name_it = ivf_name_.find(it->second.GetId());
         if (name_it == ivf_name_.end()) {
           return Status::MakeError("status error");
         }
@@ -72,32 +73,59 @@ class BVHTree<T, 2, Edges> {
     RayCasting<T, 2, Edges> ray;
     auto it = std::find_if(
         data_.begin(), data_.end(),
-        [&](const Diagram<T, Edges>& d) { return d.Contain(tmp, ray); });
+        [&](auto& d_pair) {
+        auto&[_,d] = d_pair;
+           return d.Contain(tmp, ray); });
     if (it != data_.end()) {
-      auto name_it = ivf_name_.find(it->GetId());
+      auto name_it = ivf_name_.find(it->second.GetId());
       if (name_it == ivf_name_.end()) {
         return Status::MakeError("status error");
       }
-      *area_name = it->second;
+      *area_name = name_it->second;
       return Status::MakeOK();
     }
     return Status::MakeNotFound("");
   }
 
-  Status FindNearest(const std::array<T, 2>& point, std::string* area_name) {
+  Status FindNearest(const std::array<T, 2>& point, T max_dist, std::string* area_name) {
+    FastVector<T, 2> tmp(point);
+    ClosestPoint<T,2,Edges> alg;
+    uint64_t min_id=-1;
+    T min_dist = max_dist;
+    for(auto&& [id,d]:data_){
+      T dist = d.Distance(tmp,alg);
+      if(dist < min_dist){
+        min_id = id;
+        min_dist = dist;
+        continue;
+      }
+      if(dist == min_dist){
+        T dist_c = ComputeDistance(tmp,d.GetCentre());
+        T min_dist_c = ComputeDistance(tmp,data_[min_id].GetCentre());
+        if(dist_c < min_dist_c){
+        min_id = id;
+        min_dist = dist;
+        }
+      }
+    }
+      auto name_it = ivf_name_.find(min_id);
+      if (name_it == ivf_name_.end()) {
     return Status::MakeNotFound("");
+      }
+      *area_name = name_it->second;
+      return Status::MakeOK();
   }
 
-  Status FindNearest(const std::array<T, 2>& point, uint32_t top_k,
+  Status FindNearest(const std::array<T, 2>& point, uint32_t top_k, T max_dist,
                      std::vector<std::string>* areas_name) {
-    return Status::MakeNotFound("");
+    return Status::MakeNotSupport();
   }
 
   size_t GetElementNum() const { return data_.size(); }
 
  private:
   Status Insert(std::string name, const Diagram<T, Edges>& diagram) {
-    data_.emplace(diagram);
+    data_.emplace(diagram.GetId(),diagram);
     atomic_max<uint64_t>(id_, diagram.GetId());
     ivf_name_.emplace(diagram.GetId(), name);
     return Status::MakeOK();
@@ -110,7 +138,7 @@ class BVHTree<T, 2, Edges> {
   std::atomic<uint64_t> id_;
 
   // todo change tmp
-  std::set<Diagram<T, Edges>> data_;
+  std::unordered_map<uint64_t, Diagram<T, Edges>> data_;
   std::unordered_map<uint64_t, std::string> ivf_name_;
 };
 
@@ -178,7 +206,7 @@ class BVHTreeBuilder {
   std::atomic_bool is_builded_;
   std::shared_ptr<BVHTree<T, Dim, Edges>> bvh_tree_ptr_;
   // todo change tmp
-  std::map<std::string, Diagram<T, Edges>> data_;
+  std::unordered_map<std::string, Diagram<T, Edges>> data_;
 };
 }  // namespace bvh
 
