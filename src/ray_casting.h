@@ -3,6 +3,7 @@
 #define BVH_TREE_RAY_CASTING_H
 
 #include <bitset>
+#include <iostream>
 
 #include "calculate.h"
 #include "fast_vector.h"
@@ -11,18 +12,20 @@ namespace bvh {
 
 template <typename T, size_t Dim, size_t Edges>
 class RayCasting {
-  static Status Do(const FastVector<T, Dim>& point,
-                   const VectorList<T, Dim, Edges>& peek_list,
-                   uint32_t* intersection_count) {
+ public:
+  Status Do(const FastVector<T, Dim>& point,
+            const VectorList<T, Dim, Edges>& peek_list,
+            uint32_t* intersection_count) {
     return Status::MakeNotSupport();
   }
 };
 
 template <typename T, size_t Edges>
 class RayCasting<T, 2, Edges> {
-  static Status Do(const FastVector<T, 2>& point,
-                   const VectorList<T, 2, Edges>& peek_list,
-                   uint32_t* intersection_count) {
+ public:
+  Status Do(const FastVector<T, 2>& point,
+            const VectorList<T, 2, Edges>& peek_list,
+            uint32_t* intersection_count) {
     std::bitset<Edges> result;
     try {
       StaticFor<0, Edges>([&](size_t i) {
@@ -37,20 +40,33 @@ class RayCasting<T, 2, Edges> {
         }
         auto& begin = peek_list[begin_index];
         auto& end = peek_list[end_index];
-        if (point == begin || point == end) {
-          result[i] = true;
+
+        if (begin[0] <= point[0] && end[0] <= point[0]) {
+          result.set(i, 0);
+          return;
+        }
+
+        if (point[0] < begin[0] && point[1] == begin[1]) {
+          result.set(i);
+          return;
         }
 
         if ((begin[1] < point[1] && end[1] >= point[1]) ||
             (begin[1] >= point[1] && end[1] < point[1])) {
-          auto intersection_x = begin[0] + (point[1] - begin[1]) *
-                                               (end[0] - begin[0]) /
-                                               (end[1] - begin[1]);
-          if (point[0] > intersection_x || intersection_x == point[0]) {
-            result[i] = true;
+          T intersection_x;
+          if (begin[0] == end[0]) {
+            intersection_x = end[0];
+          } else {
+            intersection_x = begin[0] + (point[1] - begin[1]) *
+                                            (end[0] - begin[0]) /
+                                            (end[1] - begin[1]);
+          }
+          if (point[0] <= intersection_x) {
+            result.set(i);
+            return;
           }
         }
-        result[i] = false;
+        result.set(i, 0);
       });
       *intersection_count = result.count();
       return Status::MakeOK();

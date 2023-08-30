@@ -50,14 +50,14 @@ void StaticFor(F&& f) {
 
 /// Computes the maximum between an atomic variable and a value, and returns the
 /// value previously held by the atomic variable.
-// template <typename T>
-// T atomic_max(std::atomic<T>& atomic, const T& value) {
-//   auto prev_value = atomic;
-//   while (prev_value < value && !atomic.compare_exchange_weak(prev_value,
-//   value))
-//     ;
-//   return prev_value;
-// }
+template <typename T>
+T atomic_max(std::atomic<T>& atomic, const T& value) {
+  auto prev_value = atomic.load();
+  while (prev_value < value && !atomic.compare_exchange_weak(prev_value,
+  value))
+    ;
+  return prev_value;
+}
 
 }  // namespace bvh
 

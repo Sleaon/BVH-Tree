@@ -31,11 +31,17 @@ class Status {
 
   static inline Status MakeOK() { return Status(); }
 
-  static inline Status MakeNotFound(std::string msg) {
+  static inline Status MakeNotFound(std::string&& msg) {
+    return Status(Code::kNOT_FOUND, msg);
+  }
+  static inline Status MakeNotFound(const std::string& msg) {
     return Status(Code::kNOT_FOUND, msg);
   }
 
-  static inline Status MakeError(std::string msg) {
+  static inline Status MakeError(std::string&& msg) {
+    return Status(Code::kERROR, msg);
+  }
+  static inline Status MakeError(const std::string& msg) {
     return Status(Code::kERROR, msg);
   }
 
@@ -50,7 +56,8 @@ class Status {
   bool operator!=(const Status& o) { return code_ != o.code_; }
 
  private:
-  Status(Code code, std::string& msg) : code_(code), msg_(std::move(msg)) {}
+  Status(Code code, const std::string& msg)
+      : code_(code), msg_(std::move(msg)) {}
   Status(Code code, std::string&& msg) : code_(code), msg_(std::move(msg)) {}
   Status(Code code) : code_(code) {}
   Status() : code_(Code::kOK) {}
