@@ -124,8 +124,8 @@ class FastVector {
   std::array<T, Dim>* values_;
 };
 
-template <typename T, size_t Dim, size_t Edges>
-using VectorList = std::array<FastVector<T, Dim>, Edges>;
+template <typename T, size_t Dim>
+using VectorList = std::vector<FastVector<T, Dim>>;
 
 }  // namespace bvh
 

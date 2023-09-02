@@ -10,13 +10,13 @@
 
 namespace bvh {
 
-template <typename T, size_t Dim, size_t Edges>
-FastVector<T, Dim> ComputeCentrePoint(VectorList<T,Dim,Edges> list) {
+template <typename T, size_t Dim>
+FastVector<T, Dim> ComputeCentrePoint(VectorList<T,Dim> list) {
   FastVector<T, Dim> r;
   for (auto& vector : list) {
     r = r + vector;
   }
-  return r / Edges;
+  return r / list.size();
 }
 
 template <typename T, size_t Dim>

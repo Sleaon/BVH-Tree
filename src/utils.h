@@ -2,11 +2,18 @@
 #ifndef BVH_TREE_UTILS_H
 #define BVH_TREE_UTILS_H
 
+#include <stdio.h>
+
 #include <atomic>
-#include <climits>
 #include <cmath>
-#include <cstdint>
-#include <cstring>
+#include <cstddef>
+#include <limits>
+#include <map>
+#include <sstream>
+#include <string>
+#include <vector>
+
+#include "status.h"
 
 namespace bvh {
 
@@ -53,10 +60,78 @@ void StaticFor(F&& f) {
 template <typename T>
 T atomic_max(std::atomic<T>& atomic, const T& value) {
   auto prev_value = atomic.load();
-  while (prev_value < value && !atomic.compare_exchange_weak(prev_value,
-  value))
+  while (prev_value < value && !atomic.compare_exchange_weak(prev_value, value))
     ;
   return prev_value;
+}
+
+template <typename T>
+T Str2Num(std::string_view str) {
+  T result;
+  std::istringstream stream(str.data());
+  stream >> result;
+  return result;
+}
+
+inline std::vector<std::string_view> Split(std::string_view input,
+                                           char delimiter) {
+  std::vector<std::string_view> result;
+  size_t start = 0;
+
+  while (start < input.size()) {
+    size_t end = input.find(delimiter, start);
+    if (end == std::string_view::npos) {
+      end = input.size();
+    }
+    result.push_back(input.substr(start, end - start));
+    start = end + 1;
+  }
+  return result;
+}
+
+/// @brief load diagram data from file, format must be "[name] [peak];[peak]",
+/// peak format is "x,y,z"
+/// @tparam T number type
+/// @param file_name The filename containing the path
+/// @param data return data
+/// @return execution state
+template <typename T>
+Status LoadDataFromFile(
+    std::string_view file_name,
+    std::map<std::string, std::vector<std::vector<T>>>* data) {
+  FILE* file = fopen(file_name.data(), "r");  // 打开文件
+
+  if (file == nullptr) {
+    return Status::MakeError(std::string(file_name) + " file not found");
+  }
+  data->clear();
+  char line[512];
+  while (fgets(line, sizeof(line), file) != nullptr) {
+    auto d = Split(line, ' ');
+    if (d.size() != 2) {
+      return Status::MakeError("format wrong");
+    }
+    auto d_name = d[0];
+    auto peaks_str = Split(d[1], ';');
+    try {
+      std::vector<std::vector<T>> peaks;
+      for (auto&& peak_str : peaks_str) {
+        auto peak_value_str = Split(peak_str, ',');
+        std::vector<T> peak;
+        for (auto&& value_str : peak_value_str) {
+          peak.emplace_back(Str2Num<T>(value_str));
+        }
+        peaks.emplace_back(std::move(peak));
+      }
+      data->emplace(d_name, std::move(peaks));
+    } catch (std::exception& e) {
+      return Status::MakeError(std::string("peaks load failed, cause: ") +
+                               e.what());
+    }
+  }
+
+  fclose(file);  // 关闭文件
+  return Status::MakeOK();
 }
 
 }  // namespace bvh

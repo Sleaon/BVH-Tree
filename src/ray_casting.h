@@ -2,53 +2,54 @@
 #ifndef BVH_TREE_RAY_CASTING_H
 #define BVH_TREE_RAY_CASTING_H
 
-#include <bitset>
+#include <algorithm>
 
 #include "calculate.h"
-#include "diagram.h"
 #include "fast_vector.h"
+#include "shape_algorithm.h"
 #include "utils.h"
 namespace bvh {
 
-template <typename T, size_t Dim, size_t Edges>
-class RayCasting {
+template <typename T>
+class Polygon;
+
+template <typename T, size_t Dim, typename Shape>
+class RayCasting : public ContianAlgorithm<T, Dim, Shape> {
  public:
-  Status Do(const FastVector<T, Dim>& point,
-            const Diagram<T,Edges>& diagram,
-            uint32_t* intersection_count) {
+  Status Do(const FastVector<T, Dim>& point, const Shape& shape,
+            bool* is_contian) override {
     return Status::MakeNotSupport();
   }
 };
 
-template <typename T, size_t Edges>
-class RayCasting<T, 2, Edges> {
+template <typename T>
+class RayCasting<T, 2, Polygon<T>> : public ContianAlgorithm<T, 2, Polygon<T>> {
  public:
-  Status Do(const FastVector<T, 2>& point,
-            const Diagram<T,Edges>& diagram,
-            uint32_t* intersection_count) {
-    std::bitset<Edges> result;
+  Status Do(const FastVector<T, 2>& point, const Polygon<T>& polygon,
+            bool* is_contian) override {
+    uint32_t count = 0;
     try {
-      StaticFor<0, Edges>([&](size_t i) {
+      auto edges = polygon.GetEdges();
+      for (auto i = 0; i < edges; ++i) {
         size_t begin_index;
         size_t end_index;
         if (i == 0) {
-         begin_index = Edges - 1;
+          begin_index = edges - 1;
           end_index = i;
         } else {
           begin_index = i - 1;
           end_index = i;
         }
-        auto& begin = diagram.GetPeak(begin_index);
-        auto& end = diagram.GetPeak(end_index);
+        auto& begin = polygon.GetPeak(begin_index);
+        auto& end = polygon.GetPeak(end_index);
 
         if (begin[0] <= point[0] && end[0] <= point[0]) {
-          result.set(i, 0);
-          return;
+          continue;
         }
 
         if (point[0] < begin[0] && point[1] == begin[1]) {
-          result.set(i);
-          return;
+          ++count;
+          continue;
         }
 
         if ((begin[1] < point[1] && end[1] >= point[1]) ||
@@ -62,13 +63,12 @@ class RayCasting<T, 2, Edges> {
                                             (end[1] - begin[1]);
           }
           if (point[0] <= intersection_x) {
-            result.set(i);
-            return;
+            ++count;
+            continue;
           }
         }
-        result.set(i, 0);
-      });
-      *intersection_count = result.count();
+      }
+      *is_contian = count % 2 !=0;
       return Status::MakeOK();
     } catch (std::exception& e) {
       return Status::MakeError(e.what());

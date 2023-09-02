@@ -17,7 +17,12 @@ IF (CMAKE_VERSION VERSION_LESS 3.4)
   enable_language (C)
 ENDIF ()
 OPTION(BUILD_TEST "build tests" OFF)
+OPTION(BUILD_BENCHMARK "build benchmark" OFF)
 add_subdirectory(src)
+
+IF(BUILD_BENCHMARK)
+  add_subdirectory(benchmark)
+ENDIF()
 
 IF(BUILD_TEST)
   add_subdirectory(third_party/googletest)

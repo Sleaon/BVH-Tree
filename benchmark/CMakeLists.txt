@@ -1,0 +1,5 @@
+include_directories(${ROOT_DIR}/src)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} BENCHMARK_SOURCE)
+MESSAGE("BENCHMARK_SOURCE is ${BENCHMARK_SOURCE}")
+add_executable(benchmark ${BENCHMARK_SOURCE})
+target_link_libraries(benchmark PUBLIC stdc++ ${LIB_NAME})
