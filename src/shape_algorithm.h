@@ -14,7 +14,7 @@ class ContianAlgorithm {
 };
 
 template <typename T, size_t Dim, typename ShapeImpl>
-class NearstAlgorithm {
+class NearestAlgorithm {
  public:
   virtual Status Do(const FastVector<T, Dim>& point, const ShapeImpl& shape,
                     T* distance) = 0;

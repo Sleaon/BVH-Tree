@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
   for (auto&& [name, peaks] : data) {
     bt_builder.Insert(name, peaks);
   }
-  bt_builder.Build();
+  bt_builder.Build(10);
   auto bt = bt_builder.GetBVHTree();
   auto end = std::chrono::high_resolution_clock::now();
   auto duration =
@@ -39,8 +39,8 @@ int main(int argc, char** argv) {
 
   std::uniform_real_distribution<> realDist(1000.0, 2000.0);
   std::vector<std::array<double, 2>> points;
-  points.reserve(1000);
-  for (auto i = 0; i < 1000; ++i) {
+  points.reserve(10000);
+  for (auto i = 0; i < 10000; ++i) {
     points.emplace_back(std::array<double, 2>{realDist(gen), realDist(gen)});
   }
 
@@ -51,7 +51,16 @@ int main(int argc, char** argv) {
   }
   end = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  std::cout << "find contain cost " << duration.count() << " us" << std::endl;
+  std::cout << "find one contain cost " << duration.count() << " us" << std::endl;
+
+  std::vector<std::string> vr;
+  start = std::chrono::high_resolution_clock::now();
+  for (auto i = 0; i < cycle_num; ++i) {
+    auto s = bt->FindAllByContain(points[intDist(gen)], &vr);
+  }
+  end = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  std::cout << "find all contain cost " << duration.count() << " us" << std::endl;
 
   start = std::chrono::high_resolution_clock::now();
   for (auto i = 0; i < cycle_num; ++i) {
@@ -59,7 +68,7 @@ int main(int argc, char** argv) {
   }
   end = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  std::cout << "find nearst cost " << duration.count() << " us" << std::endl;
+  std::cout << "find nearest cost " << duration.count() << " us" << std::endl;
 
   return 0;
 }

@@ -21,9 +21,28 @@ TEST(BVHtree, base) {
                               {20, 1}, {22, 1}, {22, 3}, {20, 3}});
   bt_builder.Insert("A6", std::vector<std::vector<float>>{
                               {26, 3}, {22, 1}, {22, 4}, {20, 3}, {74, 43}});
-  bt_builder.Build();
+  bt_builder.Insert("A7", std::vector<std::vector<float>>{
+                              {26, 3}, {22, 1}, {22, 4}, {20, 3}, {74, 43}});
+  bt_builder.Insert("A8", std::vector<std::vector<float>>{
+                              {26, 3}, {22, 1}, {22, 4}, {20, 3}, {74, 43}});
+  bt_builder.Insert("A9", std::vector<std::vector<float>>{
+                              {26, 3}, {22, 1}, {22, 4}, {20, 3}, {74, 43}});
+  bt_builder.Insert("A10", std::vector<std::vector<float>>{
+                              {26, 3}, {22, 1}, {22, 4}, {20, 3}, {74, 43}});
+  bt_builder.Insert("A11", std::vector<std::vector<float>>{
+                              {26, 3}, {22, 1}, {22, 4}, {20, 3}, {74, 43}});
+  bt_builder.Insert("A12", std::vector<std::vector<float>>{
+                              {26, 3}, {22, 1}, {22, 4}, {20, 3}, {74, 43}});
+  bt_builder.Insert("A13", std::vector<std::vector<float>>{
+                              {0, 10}, {2, 10}, {2, 12}, {0, 12}});
+  bt_builder.Insert("A14", std::vector<std::vector<float>>{
+                              {0, 10}, {2, 10}, {2, 12}, {0, 12}});
+  bt_builder.Insert("A15", std::vector<std::vector<float>>{
+                              {0, 10}, {2, 10}, {2, 12}, {0, 12}});
+  bt_builder.Build(3);
   auto bt = bt_builder.GetBVHTree();
-  EXPECT_EQ(6, bt->GetElementNum());
+  EXPECT_EQ(15, bt->GetElementNum());
+  EXPECT_EQ(3, bt->GetHight());
 }
 
 TEST(BVHtree, FindContain) {
@@ -42,7 +61,7 @@ TEST(BVHtree, FindContain) {
                                                           {1485.83, 1697.83},
                                                           {1482.48, 1697.05},
                                                           {1481.1, 1702.99}});
-  bt_builder.Build();
+  bt_builder.Build(10);
   auto bt = bt_builder.GetBVHTree();
 
   std::array<float, 2> p1{0.5, 0.5};
@@ -53,12 +72,14 @@ TEST(BVHtree, FindContain) {
 
   std::array<float, 2> p2{1.5, 1.5};
   s = bt->FindAllByContain(p2, &r);
+  std::sort(r.begin(),r.end());
   ASSERT_EQ(2, r.size());
   EXPECT_EQ("A1", r[0]);
   EXPECT_EQ("A2", r[1]);
 
   std::array<float, 2> p3{1, 1};
   s = bt->FindAllByContain(p3, &r);
+  std::sort(r.begin(),r.end());
   ASSERT_EQ(2, r.size());
   EXPECT_EQ("A1", r[0]);
   EXPECT_EQ("A2", r[1]);
@@ -93,7 +114,7 @@ TEST(BVHtree, FindNearst) {
                                                           {1485.83, 1697.83},
                                                           {1482.48, 1697.05},
                                                           {1481.1, 1702.99}});
-  bt_builder.Build();
+  bt_builder.Build(10);
   auto bt = bt_builder.GetBVHTree();
 
   std::array<float, 2> p1{-0.5, 0.5};
@@ -130,7 +151,7 @@ TEST(BVHtree, really_find) {
   for (auto&& [name, peaks] : data) {
     bt_builder.Insert(name, peaks);
   }
-  bt_builder.Build();
+  bt_builder.Build(50);
   auto bt = bt_builder.GetBVHTree();
   std::string r;
 

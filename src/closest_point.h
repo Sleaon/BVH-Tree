@@ -14,7 +14,7 @@ template <typename T>
 class Polygon;
 
 template <typename T, size_t Dim>
-class ClosestPoint : public NearstAlgorithm<T, Dim, Polygon<T>> {
+class ClosestPoint : public NearestAlgorithm<T, Dim, Polygon<T>> {
  public:
   Status Do(const FastVector<T, Dim>& point, const Polygon<T>& polygon,
             T* distance) override {

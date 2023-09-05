@@ -8,12 +8,12 @@
 #include <unordered_map>
 #include <vector>
 
+#include "bvh_node.h"
 #include "fast_vector.h"
 #include "polygon.h"
 #include "shape.h"
 #include "status.h"
 #include "utils.h"
-
 namespace bvh {
 
 template <typename T, size_t Dim>
@@ -28,12 +28,8 @@ class BVHTree<T, 2> {
   friend BVHTreeBuilder<T, 2>;
 
  public:
-  BVHTree() : id_(0) {}
-  ~BVHTree() {
-    for (auto&& [_, shape_ptr] : data_) {
-      delete shape_ptr;
-    }
-  }
+  BVHTree() : id_(0) { root_ = new BVHNode<T, 2>(); }
+  ~BVHTree() { delete root_; }
 
   Status InsertAndRebuild(std::string_view name,
                           const std::vector<std::vector<T>>& polygon) {
@@ -48,75 +44,49 @@ class BVHTree<T, 2> {
                           std::vector<std::string>* areas_name) {
     areas_name->clear();
     FastVector<T, 2> tmp(point);
-
-    auto it = data_.begin();
-    
-    while (true) {
-      it = std::find_if(it, data_.end(), [&](auto& d_pair) {
-        auto& [_, d] = d_pair;
-        return d->Contain(tmp);
-      });
-      if (it != data_.end()) {
-        auto name_it = ivf_name_.find(it->second->GetId());
-        if (name_it == ivf_name_.end()) {
-          return Status::MakeError("status error");
-        }
-        areas_name->emplace_back(name_it->second);
-      } else {
-        break;
+    std::vector<uint64_t> ids;
+    auto s = root_->FindAllByContain(tmp, &ids);
+    if (s != Status::OK()) {
+      return s;
+    }
+    for (auto i : ids) {
+      auto name_it = ivf_name_.find(i);
+      if (name_it == ivf_name_.end()) {
+        return Status::MakeError("status error");
       }
-      ++it;
+      areas_name->emplace_back(name_it->second);
     }
-
-    if (areas_name->size() > 0) {
-      return Status::MakeOK();
-    } else {
-      return Status::MakeNotFound("");
-    }
+    return Status::MakeOK();
   }
 
   Status FindOneByContain(const std::array<T, 2>& point,
                           std::string* area_name) {
     FastVector<T, 2> tmp(point);
-    auto it = std::find_if(data_.begin(), data_.end(), [&](auto& d_pair) {
-      auto& [_, d] = d_pair;
-      return d->Contain(tmp);
-    });
-    if (it != data_.end()) {
-      auto name_it = ivf_name_.find(it->second->GetId());
-      if (name_it == ivf_name_.end()) {
-        return Status::MakeError("status error");
-      }
-      *area_name = name_it->second;
-      return Status::MakeOK();
+    uint64_t id;
+    auto s = root_->FindOneByContain(tmp, &id);
+    if (s != Status::OK()) {
+      return s;
     }
-    return Status::MakeNotFound("");
+    auto name_it = ivf_name_.find(id);
+    if (name_it == ivf_name_.end()) {
+      return Status::MakeError("status error");
+    }
+    *area_name = name_it->second;
+    return Status::MakeOK();
   }
 
   Status FindNearest(const std::array<T, 2>& point, T max_dist,
                      std::string* area_name) {
     FastVector<T, 2> tmp(point);
-    uint64_t min_id = -1;
-    T min_dist = max_dist * max_dist;
-    for (auto&& [id, d] : data_) {
-      T dist = d->Distance(tmp);
-      if (dist < min_dist) {
-        min_id = id;
-        min_dist = dist;
-        continue;
-      }
-      if (dist == min_dist) {
-        T dist_c = ComputeDistance(tmp, d->GetCentre());
-        T min_dist_c = ComputeDistance(tmp, data_[min_id]->GetCentre());
-        if (dist_c < min_dist_c) {
-          min_id = id;
-          min_dist = dist;
-        }
-      }
+    uint64_t id;
+    T dist;
+    auto s = root_->FindNearest(tmp, max_dist * max_dist, &id, &dist);
+    if (s != Status::OK()) {
+      return s;
     }
-    auto name_it = ivf_name_.find(min_id);
+    auto name_it = ivf_name_.find(id);
     if (name_it == ivf_name_.end()) {
-      return Status::MakeNotFound("");
+      return Status::MakeError("status error");
     }
     *area_name = name_it->second;
     return Status::MakeOK();
@@ -127,41 +97,37 @@ class BVHTree<T, 2> {
     return Status::MakeNotSupport();
   }
 
-  size_t GetElementNum() const { return data_.size(); }
+  size_t GetElementNum() const { return root_->GetElementNum(); }
+
+  size_t GetHight() const { return root_->GetHight(); }
 
  private:
-  Status Insert(std::string name, Shape<T, 2>* shape_ptr) {
-    data_.emplace(shape_ptr->GetId(), shape_ptr);
-    atomic_max<uint64_t>(id_, shape_ptr->GetId());
-    ivf_name_.emplace(shape_ptr->GetId(), name);
-    return Status::MakeOK();
+  Status Insert(std::string_view name, VectorList<T, 2>& vl) {
+    auto shape_ptr = new Polygon<T>(id_++, std::move(vl));
+    ivf_name_.emplace(shape_ptr->GetId(), name.data());
+    return root_->Insert(shape_ptr);
   }
 
   Status Delete() { return Status::MakeNotSupport(); }
 
-  Status Build() { return Status::MakeOK(); }
+  Status Build(size_t max_capacity) { return root_->Build(max_capacity); }
 
+ private:
   std::atomic<uint64_t> id_;
-
-  // todo change tmp
-  std::unordered_map<uint64_t, Shape<T, 2>*> data_;
+  BVHNode<T, 2>* root_;
   std::unordered_map<uint64_t, std::string> ivf_name_;
 };
 
 template <typename T, size_t Dim>
 class BVHTreeBuilder {
  public:
-  BVHTreeBuilder() : id_(0), is_building_(false), is_builded_(false) {
+  BVHTreeBuilder() {
+    is_builded_ = false;
+    is_building_ = false;
     bvh_tree_ptr_ = std::make_shared<BVHTree<T, Dim>>();
   }
 
-  ~BVHTreeBuilder() {
-    if (!is_builded_.load()) {
-      for (auto&& [_, shape_ptr] : data_) {
-        delete shape_ptr;
-      }
-    }
-  }
+  ~BVHTreeBuilder() {}
   Status Insert(std::string_view name,
                 const std::vector<std::vector<T>>& polygon) {
     if (is_building_.load()) {
@@ -174,7 +140,6 @@ class BVHTreeBuilder {
     if (polygon[0].size() != Dim) {
       return Status::MakeError("Dim is not " + std::to_string(Dim));
     }
-    auto id = id_++;
     VectorList<T, Dim> vl(polygon.size());
     uint32_t i = 0;
     for (auto&& v : polygon) {
@@ -185,18 +150,15 @@ class BVHTreeBuilder {
       }
       vl[i++] = std::move(edge);
     }
-    data_.emplace(name, new Polygon(id, std::move(vl)));
+    bvh_tree_ptr_->Insert(name, vl);
     return Status::MakeOK();
   }
 
   Status Delete() { return Status::MakeNotSupport(); }
 
-  Status Build() {
+  Status Build(size_t max_capacity) {
     if (!is_building_.exchange(true)) {
-      for (auto&& [name, pp] : data_) {
-        bvh_tree_ptr_->Insert(name, pp);
-      }
-      bvh_tree_ptr_->Build();
+      bvh_tree_ptr_->Build(max_capacity);
       is_builded_.store(true);
       return Status::MakeOK();
     }
@@ -212,12 +174,9 @@ class BVHTreeBuilder {
   }
 
  private:
-  std::atomic<uint64_t> id_;
   std::atomic_bool is_building_;
   std::atomic_bool is_builded_;
   std::shared_ptr<BVHTree<T, Dim>> bvh_tree_ptr_;
-  // todo change tmp
-  std::unordered_map<std::string, Shape<T, Dim>*> data_;
 };
 }  // namespace bvh
 

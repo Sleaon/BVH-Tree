@@ -29,8 +29,14 @@ class Status {
     return not_support;
   }
 
-  static inline Status MakeOK() { return Status(); }
+  static inline Status MakeOK() {
+    static Status ok;
+    return ok;
+  }
 
+  static inline Status MakeNotFound() {
+    return Status(Code::kNOT_FOUND);
+  }
   static inline Status MakeNotFound(std::string&& msg) {
     return Status(Code::kNOT_FOUND, msg);
   }
@@ -48,6 +54,12 @@ class Status {
   static inline Status MakeNotSupport() {
     return Status(Code::kNOT_SUPPORT, "not support, now");
   }
+  
+  Status(Code code, const std::string& msg)
+      : code_(code), msg_(std::move(msg)) {}
+  Status(Code code, std::string&& msg) : code_(code), msg_(std::move(msg)) {}
+  Status(Code code) : code_(code) {}
+  Status() : code_(Code::kOK) {}
 
   std::string GetMsg() { return msg_; };
   ~Status(){};
@@ -56,11 +68,6 @@ class Status {
   bool operator!=(const Status& o) { return code_ != o.code_; }
 
  private:
-  Status(Code code, const std::string& msg)
-      : code_(code), msg_(std::move(msg)) {}
-  Status(Code code, std::string&& msg) : code_(code), msg_(std::move(msg)) {}
-  Status(Code code) : code_(code) {}
-  Status() : code_(Code::kOK) {}
   std::string msg_;
   Code code_;
 };
