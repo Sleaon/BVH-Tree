@@ -34,9 +34,7 @@ class Status {
     return ok;
   }
 
-  static inline Status MakeNotFound() {
-    return Status(Code::kNOT_FOUND);
-  }
+  static inline Status MakeNotFound() { return Status(Code::kNOT_FOUND); }
   static inline Status MakeNotFound(std::string&& msg) {
     return Status(Code::kNOT_FOUND, msg);
   }
@@ -54,7 +52,7 @@ class Status {
   static inline Status MakeNotSupport() {
     return Status(Code::kNOT_SUPPORT, "not support, now");
   }
-  
+
   Status(Code code, const std::string& msg)
       : code_(code), msg_(std::move(msg)) {}
   Status(Code code, std::string&& msg) : code_(code), msg_(std::move(msg)) {}
@@ -68,8 +66,8 @@ class Status {
   bool operator!=(const Status& o) { return code_ != o.code_; }
 
  private:
-  std::string msg_;
   Code code_;
+  std::string msg_;
 };
 }  // namespace bvh
 

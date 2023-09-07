@@ -15,7 +15,6 @@
 #include "status.h"
 #include "utils.h"
 namespace bvh {
-
 template <typename T, size_t Dim>
 class BVHTreeBuilder;
 

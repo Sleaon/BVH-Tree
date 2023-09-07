@@ -30,7 +30,7 @@ class RayCasting<T, 2, Polygon<T>> : public ContianAlgorithm<T, 2, Polygon<T>> {
     uint32_t count = 0;
     try {
       auto edges = polygon.GetEdges();
-      for (auto i = 0; i < edges; ++i) {
+      for (size_t i = 0; i < edges; ++i) {
         size_t begin_index;
         size_t end_index;
         if (i == 0) {

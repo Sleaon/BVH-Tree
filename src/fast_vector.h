@@ -15,7 +15,7 @@ class FastVector {
     if (v.size() != Dim) {
       return Status::MakeError("dim is wrong");
     }
-    std::array<T, Dim> tmp;
+    std::array<T, Dim> tmp{0};
     std::copy(v.begin(), v.end(), tmp.begin());
     *fv = FastVector(tmp);
     return Status::MakeOK();

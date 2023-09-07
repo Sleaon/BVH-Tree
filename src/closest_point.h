@@ -19,7 +19,7 @@ class ClosestPoint : public NearestAlgorithm<T, Dim, Polygon<T>> {
   Status Do(const FastVector<T, Dim>& point, const Polygon<T>& polygon,
             T* distance) override {
     auto min_pd = std::numeric_limits<T>::max();
-    size_t min_index;
+    size_t min_index = std::numeric_limits<size_t>::max();
     for (auto i : polygon.GetPeeaksByQuadrant(point)) {
       auto pd = ComputeDistance(point, polygon.GetPeak(i));
       if (pd < min_pd) {

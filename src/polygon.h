@@ -26,64 +26,62 @@ class Polygon : public Shape<T, 2> {
   template <typename... Args>
   Polygon(uint64_t id, FastVector<T, 2> x, Args&&... args)
       : id_(id),
-        peaks_{x, static_cast<FastVector<T, 2>>(std::forward<Args>(args))...},
-        edges_(sizeof...(Args) + 1) {
+        edges_(sizeof...(Args) + 1),
+        peaks_{x, static_cast<FastVector<T, 2>>(std::forward<Args>(args))...} {
     ComputeCentre();
     SplitPeek();
     ComputeRange();
   }
 
-  Polygon(uint64_t id, const VectorList<T, 2>& x) : id_(id) {
-    peaks_ = x;
-    edges_ = x.size();
+  Polygon(uint64_t id, const VectorList<T, 2>& x)
+      : id_(id), edges_(x.size()), peaks_(x) {
     ComputeCentre();
     SplitPeek();
     ComputeRange();
   }
 
-  Polygon(uint64_t id, VectorList<T, 2>&& x) : id_(id) {
-    edges_ = x.size();
-    peaks_ = std::move(x);
+  Polygon(uint64_t id, VectorList<T, 2>&& x)
+      : id_(id), edges_(x.size()), peaks_(std::move(x)) {
     ComputeCentre();
     SplitPeek();
     ComputeRange();
   }
 
-  virtual ~Polygon() {}
+  ~Polygon() override {}
 
   Polygon(const Polygon& o) {
-    centre_ = o.centre_;
-    peaks_ = o.peaks_;
     id_ = o.id_;
     edges_ = o.edges_;
+    peaks_ = o.peaks_;
+    centre_ = o.centre_;
     quadrant_ = o.quadrant_;
     box_ = o.box_;
   }
 
   Polygon(Polygon&& o) {
-    centre_ = std::move(o.centre_);
-    peaks_ = std::move(o.peaks_);
     id_ = o.id_;
     edges_ = o.edges_;
+    peaks_ = std::move(o.peaks_);
+    centre_ = std::move(o.centre_);
     quadrant_ = std::move(o.quadrant_);
     box_ = std::move(o.box_);
   }
 
   Polygon& operator=(const Polygon& o) {
-    centre_ = o.centre_;
-    peaks_ = o.peaks_;
     id_ = o.id_;
     edges_ = o.edges_;
+    peaks_ = o.peaks_;
+    centre_ = o.centre_;
     quadrant_ = o.quadrant_;
     box_ = o.box_;
     return *this;
   }
 
   Polygon& operator=(Polygon&& o) {
-    centre_ = std::move(o.centre_);
-    peaks_ = std::move(o.peaks_);
     id_ = o.id_;
     edges_ = o.edges_;
+    peaks_ = std::move(o.peaks_);
+    centre_ = std::move(o.centre_);
     quadrant_ = std::move(o.quadrant_);
     box_ = std::move(o.box_);
     return *this;
@@ -92,7 +90,6 @@ class Polygon : public Shape<T, 2> {
   bool operator<(const Polygon& o) const { return id_ < o.id_; }
 
   bool Contain(const FastVector<T, 2>& point) const override {
-    uint32_t intersection_count;
     bool is_contian;
     static RayCasting<T, 2, Polygon<T>> alg;
     auto s = alg.Do(point, *this, &is_contian);
@@ -139,7 +136,7 @@ class Polygon : public Shape<T, 2> {
  private:
   void ComputeCentre() { centre_ = ComputeCentrePoint<T, 2>(peaks_); }
   void SplitPeek() {
-    for (auto i = 0; i < edges_; ++i) {
+    for (size_t i = 0; i < edges_; ++i) {
       auto& p = this->peaks_[i];
       auto& c = this->centre_;
       if (p == c) [[unlikely]] {
@@ -167,13 +164,15 @@ class Polygon : public Shape<T, 2> {
 
   void ComputeRange() {
     auto [upper, lower, left, right] = ComputeBoxRange(peaks_);
-    box_ = Box<T,2>(upper, lower, left, right);
+    box_ = Box<T, 2>(upper, lower, left, right);
   }
-  FastVector<T, 2> centre_;
-  VectorList<T, 2> peaks_;
-  std::array<std::vector<size_t>, 4> quadrant_;
+
+ private:
   uint64_t id_;
   size_t edges_;
+  VectorList<T, 2> peaks_;
+  FastVector<T, 2> centre_;
+  std::array<std::vector<size_t>, 4> quadrant_;
   Box<T, 2> box_;
 };
 

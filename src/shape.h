@@ -19,6 +19,7 @@ class Shape {
   virtual inline uint64_t GetId() const = 0;
   virtual inline const FastVector<T, 2>& GetCentre() const = 0;
   virtual inline const Box<T,Dim>& GetBox() const = 0;
+  virtual ~Shape(){};
 };
 }  // namespace bvh
 

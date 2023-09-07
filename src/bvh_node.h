@@ -16,25 +16,27 @@ class BVHNode<T, 2> {
  public:
   BVHNode()
       : is_leaf_(true),
+        size_(0),
+        hight_(1),
+        box_(Box<T, 2>::MakeEmpty()),
         parent_(nullptr),
         upper_left_(nullptr),
         upper_right_(nullptr),
         lower_left_(nullptr),
         lower_right_(nullptr),
-        size_(0),
-        hight_(1),
-        box_(Box<T, 2>::MakeEmpty()) {}
+        data_() {}
 
   BVHNode(BVHNode<T, 2>* parent)
       : is_leaf_(true),
+        size_(0),
+        hight_(1),
+        box_(Box<T, 2>::MakeEmpty()),
         parent_(parent),
         upper_left_(nullptr),
         upper_right_(nullptr),
         lower_left_(nullptr),
         lower_right_(nullptr),
-        size_(0),
-        hight_(1),
-        box_(Box<T, 2>::MakeEmpty()) {}
+        data_()  {}
 
   ~BVHNode() {
     if (is_leaf_) {
@@ -348,15 +350,15 @@ class BVHNode<T, 2> {
   }
 
  private:
-  Box<T, 2> box_;
   bool is_leaf_;
+  size_t size_;
+  size_t hight_;
+  Box<T, 2> box_;
   BVHNode<T, 2>* parent_;
   BVHNode<T, 2>* upper_left_;
   BVHNode<T, 2>* upper_right_;
   BVHNode<T, 2>* lower_left_;
   BVHNode<T, 2>* lower_right_;
-  size_t size_;
-  size_t hight_;
   std::unordered_map<uint64_t, Shape<T, 2>*> data_;
 };
 }  // namespace bvh

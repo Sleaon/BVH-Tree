@@ -14,7 +14,7 @@ class Box<T, 2> {
  public:
   Box() = default;
   Box(T upper, T lower, T left, T right)
-      : upper_(upper), lower_(lower), right_(right), left_(left) {
+      : upper_(upper), lower_(lower), left_(left), right_(right) {
     center_[0] = left / static_cast<T>(2) + right / static_cast<T>(2);
     center_[1] = upper / static_cast<T>(2) + lower / static_cast<T>(2);
   }
@@ -23,6 +23,7 @@ class Box<T, 2> {
     lower_ = point[1];
     left_ = point[0];
     right_ = point[0];
+    center_ = point;
   }
   Box(const Box& o) {
     upper_ = o.upper_;
@@ -34,26 +35,26 @@ class Box<T, 2> {
 
   Box(Box&& o) {
     upper_ = o.upper_;
-    right_ = o.right_;
-    left_ = o.left_;
     lower_ = o.lower_;
+    left_ = o.left_;
+    right_ = o.right_;
     center_ = std::move(o.center_);
   }
 
   Box& operator=(const Box& o) {
     upper_ = o.upper_;
-    right_ = o.right_;
-    left_ = o.left_;
     lower_ = o.lower_;
+    left_ = o.left_;
+    right_ = o.right_;
     center_ = o.center_;
     return *this;
   }
 
   Box& operator=(Box&& o) {
     upper_ = o.upper_;
-    right_ = o.right_;
-    left_ = o.left_;
     lower_ = o.lower_;
+    left_ = o.left_;
+    right_ = o.right_;
     center_ = std::move(o.center_);
     return *this;
   }
@@ -120,9 +121,9 @@ class Box<T, 2> {
 
  private:
   T upper_;
-  T right_;
-  T left_;
   T lower_;
+  T left_;
+  T right_;
   FastVector<T, 2> center_;
 };
 
