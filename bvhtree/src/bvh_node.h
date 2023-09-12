@@ -2,12 +2,109 @@
 #ifndef BVH_TREE_BVH_NODE_H
 #define BVH_TREE_BVH_NODE_H
 #include <random>
+#include <set>
 #include <unordered_map>
 
 #include "box.h"
 #include "fast_vector.h"
 #include "shape.h"
 namespace bvh {
+
+template <typename T, size_t Dim>
+struct ShapeInfo {
+  uint64_t id;
+  T dist;
+  mutable T c_dist;
+  mutable bool has_c_dist;
+  const FastVector<T, Dim>* centre;
+  const FastVector<T, Dim>* point;
+  ShapeInfo()
+      : id(-1),
+        dist(std::numeric_limits<T>::max()),
+        c_dist(0),
+        has_c_dist(false),
+        centre(nullptr),
+        point(nullptr) {}
+  ShapeInfo(uint64_t id, T dist, const FastVector<T, Dim>* centre,
+            const FastVector<T, Dim>* point)
+      : id(id),
+        dist(dist),
+        c_dist(0),
+        has_c_dist(false),
+        centre(centre),
+        point(point) {}
+  inline T GetCentreDist() const {
+    if (!has_c_dist) [[unlikely]] {
+      if(point==nullptr || centre == nullptr){
+        return std::numeric_limits<T>::max();
+      }
+      c_dist = ComputeDistance(*point, *centre);
+      has_c_dist = true;
+    }
+    return c_dist;
+  }
+
+  bool operator<(const ShapeInfo<T,Dim>& o) const {
+    if (dist == o.dist) [[unlikely]] {
+      return this->GetCentreDist() < o.GetCentreDist();
+    } else {
+      return dist < o.dist;
+    }
+  }
+};
+
+template <typename T, size_t Dim>
+struct TopKHelper {
+  uint32_t capacity;
+  T dist_upper;
+  std::set<ShapeInfo<T, Dim>> nodes;
+
+  TopKHelper(uint32_t top_k, T dist_upper)
+      : capacity(top_k), dist_upper(dist_upper) {}
+
+  void InsertNearestShape(ShapeInfo<T, Dim>&& info) {
+    if (info.dist > dist_upper) {
+      return;
+    }
+
+    if(nodes.empty()){
+      nodes.emplace(std::move(info));
+      return;
+    }
+
+    if (info.dist > nodes.rbegin()->dist) {
+      return;
+    }
+    nodes.emplace(std::move(info));
+    if (nodes.size() > capacity) {
+      auto num = nodes.size() - capacity;
+      for (size_t i = 0; i < num; ++i) {
+        nodes.erase(std::prev(nodes.end()));
+      }
+    }
+  }
+
+  inline void Merge(TopKHelper<T, Dim>&& helper) {
+    nodes.merge(helper.nodes);
+    if (nodes.size() > capacity) {
+      auto num = nodes.size() - capacity;
+      for (size_t i = 0; i < num; ++i) {
+        nodes.erase(std::prev(nodes.end()));
+      }
+    }
+  }
+
+  inline void Merge(std::set<ShapeInfo<T, Dim>>& info_set) {
+    nodes.merge(info_set);
+    if (nodes.size() > capacity) {
+      auto num = nodes.size() - capacity;
+      for (size_t i = 0; i < num; ++i) {
+        nodes.erase(std::prev(nodes.end()));
+      }
+    }
+  }
+};
+
 template <typename T, size_t Dim>
 class BVHNode {};
 
@@ -36,7 +133,7 @@ class BVHNode<T, 2> {
         upper_right_(nullptr),
         lower_left_(nullptr),
         lower_right_(nullptr),
-        data_()  {}
+        data_() {}
 
   ~BVHNode() {
     if (is_leaf_) {
@@ -50,6 +147,7 @@ class BVHNode<T, 2> {
       delete lower_right_;
     }
   }
+
   Status FindAllByContain(const FastVector<T, 2>& point,
                           std::vector<uint64_t>* area_ids) const {
     if (!box_.Contain(point)) {
@@ -149,10 +247,8 @@ class BVHNode<T, 2> {
   }
 
   Status FindNearest(const FastVector<T, 2>& point, T max_dist,
-                     uint64_t* area_id, T* area_dist) const {
+                     ShapeInfo<T, 2>* shape_info) const {
     if (box_.Distance(point) > max_dist) {
-      *area_dist = std::numeric_limits<T>::max();
-      *area_id = -1;
       return Status::MakeNotFound();
     }
 
@@ -178,74 +274,114 @@ class BVHNode<T, 2> {
         }
       }
       if (min_dist <= max_dist) {
-        *area_id = min_id;
-        *area_dist = min_dist;
+        shape_info->id = min_id;
+        shape_info->dist = min_dist;
         return Status::MakeOK();
       } else {
-        *area_id = -1;
-        *area_dist = std::numeric_limits<T>::max();
         return Status::MakeNotFound();
       }
     } else {
       auto count = 0;
-      uint64_t id;
-      T dist;
-      uint64_t min_id;
-      T min_dist = std::numeric_limits<T>::max();
+      ShapeInfo<T, 2> info;
+      ShapeInfo<T, 2> min_info;
 
-      auto s = upper_left_->FindNearest(point, max_dist, &id, &dist);
+      auto s = upper_left_->FindNearest(point, max_dist, &info);
       if (s == Status::OK()) {
-        min_id = id;
-        min_dist = dist;
+        min_info = info;
         count++;
       } else if (s == Status::ERROR()) {
         return s;
       }
-      s = upper_right_->FindNearest(point, max_dist, &id, &dist);
+      s = upper_right_->FindNearest(point, max_dist, &info);
       if (s == Status::OK()) {
-        if (dist < min_dist) {
-          min_id = id;
-          min_dist = dist;
+        if (info.dist < min_info.dist) {
+          min_info = info;
           count++;
         }
       } else if (s == Status::ERROR()) {
         return s;
       }
-      s = lower_left_->FindNearest(point, max_dist, &id, &dist);
+      s = lower_left_->FindNearest(point, max_dist, &info);
       if (s == Status::OK()) {
-        if (dist < min_dist) {
-          min_id = id;
-          min_dist = dist;
+        if (info.dist < min_info.dist) {
+          min_info = info;
           count++;
         }
       } else if (s == Status::ERROR()) {
         return s;
       }
-      s = lower_right_->FindNearest(point, max_dist, &id, &dist);
+      s = lower_right_->FindNearest(point, max_dist, &info);
       if (s == Status::OK()) {
-        if (dist < min_dist) {
-          min_id = id;
-          min_dist = dist;
+        if (info.dist < min_info.dist) {
+          min_info = info;
           count++;
         }
       } else if (s == Status::ERROR()) {
         return s;
       }
       if (count > 0) {
-        *area_dist = min_dist;
-        *area_id = min_id;
+        *shape_info = min_info;
         return Status::MakeOK();
       } else {
-        *area_dist = std::numeric_limits<T>::max();
-        *area_id = -1;
         return Status::MakeNotFound();
       }
     }
   }
 
   Status FindNearest(const FastVector<T, 2>& point, uint32_t top_k, T max_dist,
-                     std::vector<uint64_t>* area_ids) const {
-    return Status::MakeNotSupport();
+                     std::set<ShapeInfo<T,2>>* info_set) const {
+    if (box_.Distance(point) > max_dist) {
+      return Status::MakeNotFound();
+    }
+    info_set->clear();
+    TopKHelper<T, 2> helper(top_k, max_dist);
+
+    if (is_leaf_) {
+      for (auto&& [id, shape] : data_) {
+        T dist = shape->Distance(point);
+        helper.InsertNearestShape(
+            ShapeInfo<T,2>(id, dist, &(shape->GetCentre()), &point));
+      }
+      if (!helper.nodes.empty()) {
+        *info_set = std::move(helper.nodes);
+        return Status::MakeOK();
+      } else {
+        return Status::MakeNotFound();
+      }
+    } else {
+      std::set<ShapeInfo<T,2>> info_tmp;
+
+      auto s = upper_left_->FindNearest(point, top_k, max_dist, &info_tmp);
+      if (s == Status::OK()) {
+        helper.Merge(info_tmp);
+      } else if (s == Status::ERROR()) {
+        return s;
+      }
+      s = upper_right_->FindNearest(point, top_k, max_dist, &info_tmp);
+      if (s == Status::OK()) {
+        helper.Merge(info_tmp);
+      } else if (s == Status::ERROR()) {
+        return s;
+      }
+      s = lower_left_->FindNearest(point, top_k, max_dist, &info_tmp);
+      if (s == Status::OK()) {
+        helper.Merge(info_tmp);
+      } else if (s == Status::ERROR()) {
+        return s;
+      }
+      s = lower_right_->FindNearest(point, top_k, max_dist, &info_tmp);
+      if (s == Status::OK()) {
+        helper.Merge(info_tmp);
+      } else if (s == Status::ERROR()) {
+        return s;
+      }
+      if (!helper.nodes.empty()) {
+        *info_set = std::move(helper.nodes);
+        return Status::MakeOK();
+      } else {
+        return Status::MakeNotFound();
+      }
+    }
   }
 
   Status Insert(Shape<T, 2>* shape_ptr) {

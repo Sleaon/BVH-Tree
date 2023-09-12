@@ -3,7 +3,7 @@
 #include <random>
 #include <string>
 
-#include "bvh_tree.h"
+#include "bvhtree/bvh_tree.h"
 using namespace bvh;
 int main(int argc, char** argv) {
   if (argc != 3) {
@@ -70,5 +70,13 @@ int main(int argc, char** argv) {
   duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
   std::cout << "find nearest cost " << duration.count() << " us" << std::endl;
 
+  std::vector<std::string> rv;
+  start = std::chrono::high_resolution_clock::now();
+  for (auto i = 0; i < cycle_num; ++i) {
+    auto s = bt->FindNearest(points[intDist(gen)],10, 100, &rv);
+  }
+  end = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  std::cout << "find nearest top-10 cost " << duration.count() << " us" << std::endl;
   return 0;
 }

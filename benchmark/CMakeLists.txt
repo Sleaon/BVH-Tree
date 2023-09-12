@@ -1,4 +1,4 @@
-include_directories(${ROOT_DIR}/src)
+include_directories(${ROOT_DIR})
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} BENCHMARK_SOURCE)
 MESSAGE("BENCHMARK_SOURCE is ${BENCHMARK_SOURCE}")
 add_executable(benchmark ${BENCHMARK_SOURCE})

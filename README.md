@@ -9,7 +9,7 @@ This project is inspired by madmann91's [bvh](https://github.com/madmann91/bvh) 
 * Supports finding the closest polygons to a target point.
 
 ## Future Goals
-- [ ] top-k nearest neighbor search
+- [x] top-k nearest neighbor search
 - [ ] support for AVX512
 - [ ] support for circular shape
 - [ ] dynamic addition and removal of shapes
