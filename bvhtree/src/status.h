@@ -54,7 +54,7 @@ class Status {
   }
 
   Status(Code code, const std::string& msg)
-      : code_(code), msg_(std::move(msg)) {}
+      : code_(code), msg_(msg) {}
   Status(Code code, std::string&& msg) : code_(code), msg_(std::move(msg)) {}
   Status(Code code) : code_(code) {}
   Status() : code_(Code::kOK) {}

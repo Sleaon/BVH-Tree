@@ -17,16 +17,6 @@
 
 namespace bvh {
 
-// template <typename T,
-//           std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
-// T robust_min(T a, T b) {
-//   return a < b ? a : b;
-// }
-// template <typename T,
-//           std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
-// T robust_max(T a, T b) {
-//   return a > b ? a : b;
-// }
 template <typename T,
           std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 inline bool NumberEQ(T a, T b) {
