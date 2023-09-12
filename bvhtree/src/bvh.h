@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "bvh_node.h"
+#include "circularity.h"
 #include "fast_vector.h"
 #include "polygon.h"
 #include "shape.h"
@@ -121,6 +122,12 @@ class BVHTree<T, 2> {
     return root_->Insert(shape_ptr);
   }
 
+  Status Insert(std::string_view name, const FastVector<T, 2>& centre,
+                T radius) {
+    auto shape_ptr = new Circularity<T>(id_++, radius, centre);
+    ivf_name_.emplace(shape_ptr->GetId(), name.data());
+    return root_->Insert(shape_ptr);
+  }
   Status Delete() { return Status::MakeNotSupport(); }
 
   Status Build(size_t max_capacity) { return root_->Build(max_capacity); }
@@ -163,8 +170,11 @@ class BVHTreeBuilder {
       }
       vl[i++] = std::move(edge);
     }
-    bvh_tree_ptr_->Insert(name, vl);
-    return Status::MakeOK();
+    return bvh_tree_ptr_->Insert(name, vl);
+  }
+  Status Insert(std::string_view name, const std::array<T, Dim>& centre,
+                T radius) {
+    return bvh_tree_ptr_->Insert(name, FastVector<T, Dim>(centre), radius);
   }
 
   Status Delete() { return Status::MakeNotSupport(); }

@@ -61,28 +61,33 @@ TEST(BVHtree, FindContain) {
                                                           {1485.83, 1697.83},
                                                           {1482.48, 1697.05},
                                                           {1481.1, 1702.99}});
+  bt_builder.Insert("A7", {0,0},5);
   bt_builder.Build(10);
   auto bt = bt_builder.GetBVHTree();
 
   std::array<float, 2> p1{0.5, 0.5};
   std::vector<std::string> r;
   auto s = bt->FindAllByContain(p1, &r);
-  ASSERT_EQ(1, r.size());
+  std::sort(r.begin(),r.end());
+  ASSERT_EQ(2, r.size());
   EXPECT_EQ("A1", r[0]);
+  EXPECT_EQ("A7", r[1]);
 
   std::array<float, 2> p2{1.5, 1.5};
   s = bt->FindAllByContain(p2, &r);
   std::sort(r.begin(),r.end());
-  ASSERT_EQ(2, r.size());
+  ASSERT_EQ(3, r.size());
   EXPECT_EQ("A1", r[0]);
   EXPECT_EQ("A2", r[1]);
+  EXPECT_EQ("A7", r[2]);
 
   std::array<float, 2> p3{1, 1};
   s = bt->FindAllByContain(p3, &r);
   std::sort(r.begin(),r.end());
-  ASSERT_EQ(2, r.size());
+  ASSERT_EQ(3, r.size());
   EXPECT_EQ("A1", r[0]);
   EXPECT_EQ("A2", r[1]);
+  EXPECT_EQ("A7", r[2]);
 
   std::array<float, 2> p4{10, 0};
   s = bt->FindAllByContain(p4, &r);
@@ -114,6 +119,7 @@ TEST(BVHtree, FindNearst) {
                                                           {1485.83, 1697.83},
                                                           {1482.48, 1697.05},
                                                           {1481.1, 1702.99}});
+  bt_builder.Insert("A7", {20,20},5);
   bt_builder.Build(10);
   auto bt = bt_builder.GetBVHTree();
 
@@ -141,6 +147,10 @@ TEST(BVHtree, FindNearst) {
   std::array<float, 2> p6{100, 10l};
   s = bt->FindNearest(p6, 5, &r);
   EXPECT_EQ(true, s == Status::NOT_FOUND());
+
+  std::array<float, 2> p7{25, 25};
+  s = bt->FindNearest(p7, 15, &r);
+  EXPECT_EQ("A7",r);
 
   std::vector<std::string> rv;
   s = bt->FindNearest(p2, 3, 5, &rv);

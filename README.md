@@ -11,7 +11,7 @@ This project is inspired by madmann91's [bvh](https://github.com/madmann91/bvh) 
 ## Future Goals
 - [x] top-k nearest neighbor search
 - [ ] support for AVX512
-- [ ] support for circular shape
+- [x] support for circular shape
 - [ ] dynamic addition and removal of shapes
 - [ ] Ensure thread safety
 
