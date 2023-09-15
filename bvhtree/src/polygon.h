@@ -134,7 +134,7 @@ class Polygon : public Shape<T, 2> {
   inline const Box<T, 2>& GetBox() const { return box_; }
 
  private:
-  void ComputeCentre() { centre_ = ComputeCentrePoint<T, 2>(peaks_); }
+  void ComputeCentre() { centre_ = ComputeCentrePoint<T, 2, ComputeRealDim<T>(2)>(peaks_); }
   void SplitPeek() {
     for (size_t i = 0; i < edges_; ++i) {
       auto& p = this->peaks_[i];

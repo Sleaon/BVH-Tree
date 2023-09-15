@@ -26,8 +26,8 @@ inline bool NumberEQ(T a, T b) {
 template <typename T,
           std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 inline bool NumberNE(T a, T b) {
-  constexpr T epslion = std::numeric_limits<T>::epsilon() * 10;
-  return std::abs(a - b) > epslion;
+  constexpr T epsilon = std::numeric_limits<T>::epsilon() * 10;
+  return std::abs(a - b) > epsilon;
 }
 
 template <typename T,
